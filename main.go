@@ -27,6 +27,26 @@ func boring(msg string) <-chan Message {
 	return c
 }
 
+func hello(msg string, chanFromMain chan bool) <-chan string {
+
+	c := make(chan string)
+	i := 0
+	go func() {
+		for {
+			select {
+			case c <- fmt.Sprintf("%s %d", msg, i):
+				i++
+				//do nothing
+			case <-chanFromMain:
+
+				return
+			}
+		}
+	}()
+
+	return c
+}
+
 func fanIn_old(inputs ...<-chan Message) <-chan Message {
 	c := make(chan Message)
 	for _, input := range inputs {
@@ -64,30 +84,28 @@ func fanIn_select(input1, input2 <-chan Message) <-chan Message {
 }
 
 func main() {
+	quit := make(chan bool)
+	chanHello := hello("JOHN", quit)
+	for i := rand.Intn(10); i >= 0; i-- {
+		fmt.Println(<-chanHello)
+	}
+	quit <- true
 
 	c := fanIn_select(boring("JOE"), boring("ANN"))
 	fmt.Println("main listening")
-	/*	for i := 0; i < 5; i++ {
-		msg1 := <-c
-		fmt.Printf(" * * * main reading %s \n", msg1.str)
-		msg2 := <-c
-		fmt.Printf(" * * * main reading %s \n", msg2.str)
-		msg1.wait <- true
-		msg2.wait <- true
-	}*/
-
-	var time1 time.Time
-
+	convoTimeout := time.After(5 * time.Second)
 	for {
 		select {
 		case msg := <-c:
 			fmt.Printf(" * * * main select %s \n", msg.str)
 			msg.wait <- true
-			time1 = currentTime()
-		case <-time.After(3 * time.Second):
-			fmt.Println("main timeout")
-			time2 := currentTime()
-			fmt.Println(time2.Sub(time1))
+			//time1 = currentTime()
+		case <-convoTimeout:
+			fmt.Println("convo timeout")
+		case <-time.After(5 * time.Second): // time after blocked
+			fmt.Println("blocking timeout")
+			//time2 := currentTime()
+			//fmt.Println(time2.Sub(time1))
 			return
 		}
 	}
@@ -117,6 +135,11 @@ func main() {
 	// like djikstra's guarded commands - several if statements - which one is chosen at runtime
 
 	//select can be used to timeout a communication
+	// time.After is infact a standard library channel that returns a value after the timeout
+
+	//timeout after blocked
+	//timeout entire convo
+	//timeout or quite channel
 
 }
 
