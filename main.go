@@ -39,6 +39,8 @@ func hello(msg string, chanFromMain chan bool) <-chan string {
 				//do nothing
 			case <-chanFromMain:
 
+				fmt.Println("main wants me to quit")
+				chanFromMain <- true
 				return
 			}
 		}
@@ -90,6 +92,7 @@ func main() {
 		fmt.Println(<-chanHello)
 	}
 	quit <- true
+	fmt.Printf("JOHN is done %v \n", <-quit)
 
 	c := fanIn_select(boring("JOE"), boring("ANN"))
 	fmt.Println("main listening")
@@ -139,7 +142,9 @@ func main() {
 
 	//timeout after blocked
 	//timeout entire convo
-	//timeout or quite channel
+	//timeout or quit channel
+
+	// roudtrip - main asks goroutine to quit - select case quit. do cleanup, report to main back
 
 }
 
