@@ -88,7 +88,7 @@ func fanIn_select(input1, input2 <-chan Message) <-chan Message {
 func main() {
 	quit := make(chan bool)
 	chanHello := hello("JOHN", quit)
-	for i := 10; i >= 0; i-- {
+	for i := rand.Intn(10); i >= 0; i-- {
 		fmt.Println(<-chanHello)
 	}
 	quit <- true
